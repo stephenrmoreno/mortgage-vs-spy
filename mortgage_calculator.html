@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mortgage Payoff Calculator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; padding: 32px 24px; }
+  h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { font-size: 0.9rem; color: #6e6e73; margin-bottom: 32px; }
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; max-width: 1100px; }
+  .card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 20px; color: #1d1d1f; }
+  .section-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #0071e3; margin: 22px 0 12px; padding-bottom: 6px; border-bottom: 1.5px solid #e5e5ea; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 0.82rem; font-weight: 500; color: #6e6e73; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .field input { width: 100%; padding: 10px 14px; border: 1.5px solid #d2d2d7; border-radius: 10px; font-size: 0.95rem; outline: none; transition: border-color 0.15s; }
+  .field input:focus { border-color: #0071e3; }
+  .field .hint { font-size: 0.78rem; color: #6e6e73; margin-top: 4px; }
+  button { width: 100%; padding: 12px; background: #0071e3; color: white; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-top: 8px; transition: background 0.15s; }
+  button:hover { background: #0077ed; }
+  .results { display: none; }
+  .results.visible { display: block; }
+  .piti-banner { background: #1d1d1f; color: white; border-radius: 14px; padding: 20px 24px; margin-bottom: 20px; display: flex; gap: 0; }
+  .piti-item { flex: 1; text-align: center; padding: 0 12px; border-right: 1px solid rgba(255,255,255,0.15); }
+  .piti-item:last-child { border-right: none; }
+  .piti-item .lbl { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+  .piti-item .val { font-size: 1.2rem; font-weight: 700; color: white; }
+  .piti-item .val.total { color: #ffd60a; font-size: 1.4rem; }
+  .piti-item .sub { font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .stat { background: #f5f5f7; border-radius: 12px; padding: 16px; }
+  .stat.highlight { background: #e8f4fd; }
+  .stat.green { background: #e6f9ef; }
+  .stat label { font-size: 0.78rem; font-weight: 500; color: #6e6e73; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 4px; }
+  .stat .value { font-size: 1.25rem; font-weight: 700; color: #1d1d1f; }
+  .stat .value.accent { color: #0071e3; }
+  .stat .value.green { color: #1a8a4a; }
+  .stat .sub { font-size: 0.78rem; color: #6e6e73; margin-top: 2px; }
+  .section-header { font-size: 1rem; font-weight: 600; margin: 24px 0 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-bottom: 8px; }
+  th { text-align: left; padding: 8px 12px; background: #f5f5f7; color: #6e6e73; font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  th:first-child { border-radius: 8px 0 0 8px; }
+  th:last-child { border-radius: 0 8px 8px 0; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr.your-row td { background: #f0f4ff; font-weight: 600; }
+  .payoff-date { font-size: 0.82rem; color: #6e6e73; }
+  .note { font-size: 0.82rem; color: #6e6e73; margin-top: 16px; line-height: 1.5; background: #f5f5f7; border-radius: 10px; padding: 14px; }
+  /* Tradeoff section */
+  .tradeoff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .tradeoff-card { border-radius: 14px; padding: 20px; }
+  .tradeoff-card.mortgage { background: #fff3e0; border: 1.5px solid #ffb74d; }
+  .tradeoff-card.invest { background: #e8f5e9; border: 1.5px solid #66bb6a; }
+  .tradeoff-card .tc-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
+  .tradeoff-card.mortgage .tc-label { color: #e65100; }
+  .tradeoff-card.invest .tc-label { color: #2e7d32; }
+  .tradeoff-card .tc-main { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; }
+  .tradeoff-card.mortgage .tc-main { color: #bf360c; }
+  .tradeoff-card.invest .tc-main { color: #1b5e20; }
+  .tradeoff-card .tc-sub { font-size: 0.8rem; color: #555; line-height: 1.4; }
+  .tradeoff-card .tc-detail { font-size: 0.78rem; color: #777; margin-top: 8px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 8px; }
+  .verdict { border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
+  .verdict.invest-wins { background: #e8f5e9; border: 1.5px solid #66bb6a; }
+  .verdict.mortgage-wins { background: #fff3e0; border: 1.5px solid #ffb74d; }
+  .verdict.tie { background: #f3f0ff; border: 1.5px solid #9c88ff; }
+  .verdict-icon { font-size: 2rem; flex-shrink: 0; }
+  .verdict-text .vt-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 2px; }
+  .verdict-text .vt-sub { font-size: 0.82rem; color: #555; }
+  .spy-table th { background: #f0f8f0; }
+  .spy-table tr.highlight-row td { background: #e8f5e9; font-weight: 600; }
+  @media (max-width: 700px) {
+    .layout { grid-template-columns: 1fr; }
+    .summary-grid, .tradeoff-grid { grid-template-columns: 1fr; }
+    .piti-banner { flex-wrap: wrap; }
+    .piti-item { min-width: 45%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 8px; }
+  }
+</style>
+</head>
+<body>
+<h1>Mortgage Payoff Calculator</h1>
+<p class="subtitle">Full PITI breakdown · Payoff scenarios · SPY investment tradeoff</p>
+<div class="layout">
+  <div class="card">
+    <h2>Loan Details</h2>
+
+    <div class="section-label">Mortgage</div>
+    <div class="field">
+      <label>Current Balance</label>
+      <input type="number" id="balance" value="250000" step="0.01">
+    </div>
+    <div class="field">
+      <label>Annual Interest Rate (%)</label>
+      <input type="number" id="rate" value="3.0" step="0.01">
+    </div>
+    <div class="field">
+      <label>Loan Start Date</label>
+      <input type="month" id="startDate" value="2020-06">
+    </div>
+    <div class="field">
+      <label>Loan Term (years)</label>
+      <input type="number" id="term" value="30" step="1">
+    </div>
+
+    <div class="section-label">Property Tax & Insurance</div>
+    <div class="field">
+      <label>Home Appraised Value ($)</label>
+      <input type="number" id="homeValue" value="490000" step="1000">
+      <div class="hint">Used to calculate property tax</div>
+    </div>
+    <div class="field">
+      <label>Property Tax Rate (%)</label>
+      <input type="number" id="taxRate" value="2.02" step="0.01">
+      <div class="hint">Annual rate after exemptions</div>
+    </div>
+    <div class="field">
+      <label>Annual Homeowner's Insurance ($)</label>
+      <input type="number" id="insurance" value="2400" step="100">
+      <div class="hint">Typical TX range: $2,000–$4,000/yr</div>
+    </div>
+
+    <div class="section-label">Extra Payments</div>
+    <div class="field">
+      <label>One-Time Windfall ($)</label>
+      <input type="number" id="windfall" value="0" step="1000">
+      <div class="hint">Applied today against principal</div>
+    </div>
+    <div class="field">
+      <label>Extra Monthly Payment ($)</label>
+      <input type="number" id="extraMonthly" value="0" step="100">
+      <div class="hint">Added to P&I each month</div>
+    </div>
+    <div class="field">
+      <label>Extra Quarterly Payment ($)</label>
+      <input type="number" id="extraQuarterly" value="0" step="500">
+      <div class="hint">Applied to principal every 3 months</div>
+    </div>
+
+    <div class="section-label">SPY Assumptions</div>
+    <div class="field">
+      <label>Expected Annual Return (%)</label>
+      <input type="number" id="spyReturn" value="9.0" step="0.5">
+      <div class="hint">SPY historical avg ~10%; use 7–9% to be conservative</div>
+    </div>
+    <button onclick="calculate()">Calculate</button>
+  </div>
+
+  <div id="results" class="card results">
+    <div id="pitiBanner" class="piti-banner"></div>
+    <div id="summary" class="summary-grid"></div>
+
+    <div class="section-header">Payoff Scenarios</div>
+    <table id="scenarioTable"></table>
+
+    <div id="tradeoffSection"></div>
+
+    <div class="note" id="noteText"></div>
+  </div>
+</div>
+
+<script>
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+function fmtD(n) { return '$' + n.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0}); }
+
+function amortize(balance, annualRate, startDate, termYears, windfall, extraMonthly, extraQuarterly) {
+  extraQuarterly = extraQuarterly || 0;
+  const monthlyRate = annualRate / 100 / 12;
+  const totalMonths = termYears * 12;
+  const now = new Date(2026, 5, 1);
+  const start = new Date(startDate + '-01');
+  const elapsed = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  const remaining = totalMonths - elapsed;
+
+  const monthlyPayment = monthlyRate === 0
+    ? balance / remaining
+    : balance * monthlyRate / (1 - Math.pow(1 + monthlyRate, -remaining));
+
+  let bal = balance - windfall;
+  if (bal < 0) bal = 0;
+  let totalInterest = 0;
+  let months = 0;
+
+  while (bal > 0.01 && months < remaining) {
+    const interest = bal * monthlyRate;
+    const quarterlyThisMonth = (extraQuarterly > 0 && (months + 1) % 3 === 0) ? extraQuarterly : 0;
+    const payment = Math.min(monthlyPayment + extraMonthly + quarterlyThisMonth, bal + interest);
+    const principal = payment - interest;
+    totalInterest += interest;
+    bal -= principal;
+    months++;
+  }
+
+  const payoffDate = new Date(now);
+  payoffDate.setMonth(payoffDate.getMonth() + months);
+
+  return { months, totalInterest, monthlyPayment, remaining, payoffDate };
+}
+
+// Compound the extra payments as if invested in SPY instead
+function modelSPY(windfall, extraMonthly, extraQuarterly, horizonMonths, annualReturn) {
+  const monthlyRate = annualReturn / 100 / 12;
+  let portfolio = windfall; // lump sum invested today
+  for (let m = 0; m < horizonMonths; m++) {
+    portfolio *= (1 + monthlyRate);
+    portfolio += extraMonthly;
+    if ((m + 1) % 3 === 0) portfolio += extraQuarterly;
+  }
+  // Total contributed (not counting growth)
+  const totalContributed = windfall + extraMonthly * horizonMonths + extraQuarterly * Math.floor(horizonMonths / 3);
+  const totalGrowth = portfolio - totalContributed;
+  return { finalValue: portfolio, totalContributed, totalGrowth };
+}
+
+function calculate() {
+  const balance        = parseFloat(document.getElementById('balance').value);
+  const rate           = parseFloat(document.getElementById('rate').value);
+  const startDate      = document.getElementById('startDate').value;
+  const term           = parseInt(document.getElementById('term').value);
+  const homeValue      = parseFloat(document.getElementById('homeValue').value) || 0;
+  const taxRate        = parseFloat(document.getElementById('taxRate').value) || 0;
+  const insurance      = parseFloat(document.getElementById('insurance').value) || 0;
+  const windfall       = parseFloat(document.getElementById('windfall').value) || 0;
+  const extraMonthly   = parseFloat(document.getElementById('extraMonthly').value) || 0;
+  const extraQuarterly = parseFloat(document.getElementById('extraQuarterly').value) || 0;
+  const spyReturn      = parseFloat(document.getElementById('spyReturn').value) || 9;
+
+  const monthlyTax       = (homeValue * taxRate / 100) / 12;
+  const monthlyInsurance = insurance / 12;
+
+  const base   = amortize(balance, rate, startDate, term, 0, 0, 0);
+  const custom = amortize(balance, rate, startDate, term, windfall, extraMonthly, extraQuarterly);
+
+  const interestSaved = base.totalInterest - custom.totalInterest;
+  const monthsSaved   = base.months - custom.months;
+  const yearsSaved    = (monthsSaved / 12).toFixed(1);
+  const monthlyEquivQuarterly = extraQuarterly / 3;
+  const totalPITI = base.monthlyPayment + monthlyTax + monthlyInsurance;
+
+  function fmtDate(d) {
+    return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  // PITI Banner
+  document.getElementById('pitiBanner').innerHTML = `
+    <div class="piti-item">
+      <div class="lbl">Principal & Interest</div>
+      <div class="val">${fmt(base.monthlyPayment)}</div>
+      <div class="sub">mortgage payment</div>
+    </div>
+    <div class="piti-item">
+      <div class="lbl">Property Tax</div>
+      <div class="val">${fmt(monthlyTax)}</div>
+      <div class="sub">${taxRate}% of ${fmt(homeValue)}/yr</div>
+    </div>
+    <div class="piti-item">
+      <div class="lbl">Insurance</div>
+      <div class="val">${fmt(monthlyInsurance)}</div>
+      <div class="sub">homeowner's</div>
+    </div>
+    <div class="piti-item">
+      <div class="lbl">Total PITI</div>
+      <div class="val total">${fmt(totalPITI)}</div>
+      <div class="sub">true monthly cost</div>
+    </div>
+    ${extraQuarterly > 0 ? `
+    <div class="piti-item" style="background:rgba(255,214,10,0.12);border-radius:10px;margin-left:8px">
+      <div class="lbl">Quarterly Extra</div>
+      <div class="val" style="color:#ffd60a">${fmt(extraQuarterly)}</div>
+      <div class="sub">≈ ${fmt(monthlyEquivQuarterly)}/mo equiv</div>
+    </div>` : ''}
+  `;
+
+  // Summary stats
+  document.getElementById('summary').innerHTML = `
+    <div class="stat">
+      <label>P&I Payment</label>
+      <div class="value">${fmt(base.monthlyPayment)}</div>
+      <div class="sub">${base.remaining} months remaining</div>
+    </div>
+    <div class="stat highlight">
+      <label>Total Interest Remaining</label>
+      <div class="value accent">${fmt(base.totalInterest)}</div>
+      <div class="sub">Payoff: ${fmtDate(base.payoffDate)}</div>
+    </div>
+    <div class="stat">
+      <label>Annual Housing Cost</label>
+      <div class="value">${fmt(totalPITI * 12)}</div>
+      <div class="sub">PITI × 12</div>
+    </div>
+    ${windfall > 0 || extraMonthly > 0 || extraQuarterly > 0 ? `
+    <div class="stat green">
+      <label>Interest Saved</label>
+      <div class="value green">${fmt(interestSaved)}</div>
+      <div class="sub">${yearsSaved} years earlier payoff</div>
+    </div>` : `
+    <div class="stat">
+      <label>Tax + Insurance</label>
+      <div class="value">${fmt((monthlyTax + monthlyInsurance) * 12)}/yr</div>
+      <div class="sub">${fmt(monthlyTax + monthlyInsurance)}/mo escrow</div>
+    </div>`}
+  `;
+
+  // Payoff Scenarios — only 3 rows + your scenario
+  const hasCustom = windfall > 0 || extraMonthly > 0 || extraQuarterly > 0;
+  const scenarios = [
+    { label: 'No extra payments', windfall: 0, extra: 0, quarterly: 0 },
+    { label: '$25k windfall',     windfall: 25000, extra: 0, quarterly: 0 },
+  ];
+  if (hasCustom) {
+    scenarios.push({ label: '★ Your scenario', windfall, extra: extraMonthly, quarterly: extraQuarterly, custom: true });
+  }
+
+  const scenarioResults = scenarios.map(s => {
+    const r = amortize(balance, rate, startDate, term, s.windfall, s.extra, s.quarterly);
+    const pitiMonthly = base.monthlyPayment + s.extra + monthlyTax + monthlyInsurance;
+    return { ...s, ...r, saved: base.totalInterest - r.totalInterest, mSaved: base.months - r.months, pitiMonthly };
+  });
+
+  const rows = scenarioResults.map(s => `
+    <tr class="${s.custom ? 'your-row' : ''}">
+      <td>${s.label}</td>
+      <td>${fmt(s.pitiMonthly)}<br><span style="font-size:0.75rem;color:#6e6e73">base PITI${s.quarterly > 0 ? ' + ' + fmt(s.quarterly) + '/qtr' : ''}</span></td>
+      <td>${fmt(s.totalInterest)}</td>
+      <td style="color:#1a8a4a;font-weight:600">${s.saved > 0 ? fmt(s.saved) : '—'}</td>
+      <td>${s.mSaved > 0 ? (s.mSaved / 12).toFixed(1) + ' yrs' : '—'}</td>
+      <td class="payoff-date">${fmtDate(s.payoffDate)}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('scenarioTable').innerHTML = `
+    <thead><tr>
+      <th>Scenario</th>
+      <th>Monthly PITI</th>
+      <th>Total Interest</th>
+      <th>Interest Saved</th>
+      <th>Time Saved</th>
+      <th>Payoff Date</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  `;
+
+  // ── Tradeoff Section ──────────────────────────────────────────────
+  const hasExtra = windfall > 0 || extraMonthly > 0 || extraQuarterly > 0;
+
+  if (!hasExtra) {
+    document.getElementById('tradeoffSection').innerHTML = `
+      <div class="section-header">Tradeoffs: Mortgage Paydown vs. SPY</div>
+      <div class="note">Enter extra payment amounts above to see how they compare against investing the same money in SPY.</div>
+    `;
+    document.getElementById('noteText').innerHTML = '';
+    document.getElementById('results').classList.add('visible');
+    return;
+  }
+
+  // Horizon = shortened loan term (custom.months), not original remaining term.
+  // This is the correct apples-to-apples comparison: SPY grows for exactly as long
+  // as it takes to pay off the mortgage with extra payments.
+  const fullHorizonMonths = custom.months;
+  const fullHorizonYears  = +(fullHorizonMonths / 12).toFixed(1);
+  const fullHorizonYearsRound = Math.round(fullHorizonMonths / 12);
+  const originalYears     = Math.round(base.remaining / 12);
+
+  const spyFull = modelSPY(windfall, extraMonthly, extraQuarterly, fullHorizonMonths, spyReturn);
+  const mortgageWin = interestSaved;
+  const spyWin      = spyFull.totalGrowth;
+
+  const investWins = spyWin > mortgageWin;
+  const verdictClass = investWins ? 'invest-wins' : 'mortgage-wins';
+  const verdictIcon  = investWins ? '📈' : '🏠';
+  const verdictTitle = investWins
+    ? `Investing in SPY comes out ahead by ${fmt(Math.abs(spyWin - mortgageWin))}`
+    : `Paying down the mortgage saves more by ${fmt(Math.abs(mortgageWin - spyWin))}`;
+  const verdictSub = investWins
+    ? `At ${spyReturn}% annual return, SPY growth of ${fmt(spyWin)} exceeds your ${rate}% mortgage interest savings of ${fmt(mortgageWin)} over ${fullHorizonYears} years (your accelerated payoff timeline). The math favors investing — but SPY returns aren't guaranteed.`
+    : `Your ${rate}% guaranteed mortgage savings of ${fmt(mortgageWin)} beats the modeled SPY growth of ${fmt(spyWin)} over ${fullHorizonYears} years. Try raising the SPY return assumption — at 3% mortgage rate, investing usually wins.`;
+
+  // Snapshot table capped at the shortened horizon
+  const snapYears = [5, 10, 15, 20, fullHorizonYearsRound]
+    .filter((y, i, arr) => y <= fullHorizonYearsRound && arr.indexOf(y) === i);
+  const snapRows = snapYears.map(yr => {
+    const months = yr * 12;
+    const spy = modelSPY(windfall, extraMonthly, extraQuarterly, months, spyReturn);
+    // Interest saved by yr: run amortize and compare to base interest over same period
+    const withExtra  = amortize(balance, rate, startDate, term, windfall, extraMonthly, extraQuarterly);
+    // Interest paid over 'months' months with vs without extra
+    function interestOverPeriod(wf, em, eq, mo) {
+      const mr = rate / 100 / 12;
+      const mp = base.monthlyPayment;
+      let bal = balance - wf; if (bal < 0) bal = 0;
+      let interest = 0;
+      for (let m = 0; m < mo && bal > 0.01; m++) {
+        const i = bal * mr;
+        const q = (eq > 0 && (m+1) % 3 === 0) ? eq : 0;
+        const pay = Math.min(mp + em + q, bal + i);
+        interest += i;
+        bal -= (pay - i);
+      }
+      return interest;
+    }
+    const baseInt   = interestOverPeriod(0, 0, 0, months);
+    const extraInt  = interestOverPeriod(windfall, extraMonthly, extraQuarterly, months);
+    const intSaved  = baseInt - extraInt;
+    const isLast    = yr === fullHorizonYearsRound;
+    return `<tr class="${isLast ? 'highlight-row' : ''}">
+      <td>${yr} yr${yr === 1 ? '' : 's'}${isLast ? ' ★ payoff' : ''}</td>
+      <td>${fmt(spy.totalContributed)}</td>
+      <td style="color:#1b5e20;font-weight:600">${fmt(spy.finalValue)}</td>
+      <td style="color:#1b5e20">${fmt(spy.totalGrowth)}</td>
+      <td style="color:#bf360c;font-weight:600">${fmt(intSaved)}</td>
+      <td style="font-weight:${isLast?'700':'400'};color:${spy.totalGrowth > intSaved ? '#1b5e20' : '#bf360c'}">${spy.totalGrowth > intSaved ? '📈 SPY +' + fmt(spy.totalGrowth - intSaved) : '🏠 Mortgage +' + fmt(intSaved - spy.totalGrowth)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tradeoffSection').innerHTML = `
+    <div class="section-header">Tradeoffs: Mortgage Paydown vs. SPY (${spyReturn}% annual · ${fullHorizonYears}-yr horizon)</div>
+    <p style="font-size:0.82rem;color:#6e6e73;margin-bottom:14px;">SPY is modeled over your <strong>accelerated ${fullHorizonYears}-year payoff timeline</strong>, not the original ${originalYears} years — an apples-to-apples comparison of what the same dollars do in each path.</p>
+
+    <div class="tradeoff-grid">
+      <div class="tradeoff-card mortgage">
+        <div class="tc-label">🏠 Pay Down Mortgage</div>
+        <div class="tc-main">${fmt(mortgageWin)}</div>
+        <div class="tc-sub">Guaranteed interest saved over ${fullHorizonYears} years</div>
+        <div class="tc-detail">${rate}% risk-free return · no taxes on savings · deterministic</div>
+      </div>
+      <div class="tradeoff-card invest">
+        <div class="tc-label">📈 Invest in SPY Instead</div>
+        <div class="tc-main">${fmt(spyFull.totalGrowth)}</div>
+        <div class="tc-sub">Projected growth on ${fmt(spyFull.totalContributed)} invested over ${fullHorizonYears} years</div>
+        <div class="tc-detail">${spyReturn}% assumed annual return · subject to market risk · gains taxable</div>
+      </div>
+    </div>
+
+    <div class="verdict ${verdictClass}">
+      <div class="verdict-icon">${verdictIcon}</div>
+      <div class="verdict-text">
+        <div class="vt-title">${verdictTitle}</div>
+        <div class="vt-sub">${verdictSub}</div>
+      </div>
+    </div>
+
+    <table class="spy-table">
+      <thead><tr>
+        <th>Horizon</th>
+        <th>Total Invested</th>
+        <th>SPY Portfolio Value</th>
+        <th>SPY Growth</th>
+        <th>Interest Saved</th>
+        <th>Winner</th>
+      </tr></thead>
+      <tbody>${snapRows}</tbody>
+    </table>
+  `;
+
+  document.getElementById('noteText').innerHTML = `
+    <strong>How to read this:</strong> Both paths use the same horizon — your <em>accelerated</em> payoff date of ${fullHorizonYears} years (down from ${originalYears} years without extra payments). "Interest Saved" is cumulative mortgage interest avoided by making extra payments up to that point. "SPY Growth" is what those same dollars would have earned invested in the market over the same period. The winner column shows which path generated more value at each snapshot. SPY returns are modeled at a flat ${spyReturn}%/yr — real returns vary significantly year to year. Mortgage savings are guaranteed; SPY growth is not. Capital gains taxes on SPY are not factored in, which would reduce the invest column further.
+  `;
+
+  document.getElementById('results').classList.add('visible');
+}
+
+calculate();
+</script>
+</body>
+</html>
