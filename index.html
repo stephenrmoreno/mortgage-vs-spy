@@ -59,14 +59,14 @@
 <div class="topbar">
   <div class="brand">📊 Mortgage &amp; SPY Tools</div>
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('calculator', this)">🏠 Mortgage Calculator</button>
-    <button class="tab" onclick="switchTab('chart', this)">📈 SPY Tradeoff Chart</button>
+    <button class="tab" onclick="switchTab('calculator', this)">🏠 Mortgage Calculator</button>
+    <button class="tab active" onclick="switchTab('chart', this)">📈 SPY Tradeoff Chart</button>
   </div>
 </div>
 
 <div class="frame-container">
-  <iframe id="frame-calculator" src="mortgage_calculator.html"></iframe>
-  <iframe id="frame-chart"      src="mortgage_vs_spy_chart.html" class="hidden"></iframe>
+  <iframe id="frame-calculator" src="mortgage_calculator.html" class="hidden"></iframe>
+  <iframe id="frame-chart"      src="mortgage_vs_spy_chart.html"></iframe>
 </div>
 
 <script>
